@@ -66,7 +66,7 @@ All training data is from public sources. No proprietary or hospital data is use
 | AKUDENTAL | 333 panoramic | [GitHub](https://github.com/MuhammadSohaib7/AKUDENTAL) |
 | Aariz | 1,000 cephalometric | [GitHub](https://github.com/ahadch27/AARIZ-A-Benchmark-Dataset-for-Automatic-Cephalometric-Landmark-Detection-and-CVM-Stage-Classification) |
 
-One thing worth flagging: DENTEX and the Supervisely-format datasets (HITL, Dataset1) use different quadrant orderings. DENTEX numbers centripetally, HITL numbers clockwise. Aggregating without correcting for this inverts the upper-right and lower-left quadrants silently. If you're reusing the dataset-loading code, the remapping is in `notebooks/orthovision_pipeline.ipynb`.
+One thing worth flagging: DENTEX and the Supervisely-format datasets (HITL) use different quadrant orderings. DENTEX numbers centripetally, HITL numbers clockwise. Aggregating without correcting for this inverts the upper-right and lower-left quadrants silently. If you're reusing the dataset-loading code, the remapping is in `notebooks/orthovision_pipeline.ipynb`.
 
 ---
 
