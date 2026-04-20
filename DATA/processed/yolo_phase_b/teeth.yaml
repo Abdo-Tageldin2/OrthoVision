@@ -1,0 +1,38 @@
+path: C:/Users/Abdo/Desktop/Work/code/Teeth/DATA/processed/yolo_phase_b
+train: images/train
+val: images/val
+
+nc: 32
+names:
+  0: 'FDI_11'
+  1: 'FDI_12'
+  2: 'FDI_13'
+  3: 'FDI_14'
+  4: 'FDI_15'
+  5: 'FDI_16'
+  6: 'FDI_17'
+  7: 'FDI_18'
+  8: 'FDI_21'
+  9: 'FDI_22'
+  10: 'FDI_23'
+  11: 'FDI_24'
+  12: 'FDI_25'
+  13: 'FDI_26'
+  14: 'FDI_27'
+  15: 'FDI_28'
+  16: 'FDI_31'
+  17: 'FDI_32'
+  18: 'FDI_33'
+  19: 'FDI_34'
+  20: 'FDI_35'
+  21: 'FDI_36'
+  22: 'FDI_37'
+  23: 'FDI_38'
+  24: 'FDI_41'
+  25: 'FDI_42'
+  26: 'FDI_43'
+  27: 'FDI_44'
+  28: 'FDI_45'
+  29: 'FDI_46'
+  30: 'FDI_47'
+  31: 'FDI_48'

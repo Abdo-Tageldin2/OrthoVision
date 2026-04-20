@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrthoAI — Dental Radiograph Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;500;600;700&family=Karla:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ================================================================
+   Tokens — OKLCH palette with warm amber-tinted neutrals
+   ================================================================ */
+:root {
+  /* Surfaces — progressively lighter, all tinted toward amber hue (75°) */
+  --bg:      oklch(0.135 0.006 75);
+  --s1:      oklch(0.165 0.008 75);
+  --s2:      oklch(0.195 0.010 75);
+  --s3:      oklch(0.225 0.011 75);
+
+  /* Lines */
+  --bord:    oklch(0.28 0.010 75);
+  --bord-s:  oklch(0.225 0.009 75);
+  --bord-h:  oklch(0.36 0.014 75);
+
+  /* Text */
+  --text:    oklch(0.94 0.008 85);
+  --mute:    oklch(0.72 0.010 80);
+  --mute-d:  oklch(0.58 0.011 78);
+  --faint:   oklch(0.42 0.008 78);
+
+  /* Amber — the single accent */
+  --amber:    oklch(0.76 0.15 73);
+  --amber-h:  oklch(0.82 0.16 78);
+  --amber-d:  oklch(0.62 0.14 70);
+  --amber-g:  color-mix(in oklch, var(--amber) 10%, transparent);
+  --amber-b:  color-mix(in oklch, var(--amber) 26%, transparent);
+
+  /* Clinical signals */
+  --ok:       oklch(0.68 0.14 150);
+  --ok-g:     color-mix(in oklch, var(--ok) 11%, transparent);
+  --ok-b:     color-mix(in oklch, var(--ok) 28%, transparent);
+
+  --warn:     oklch(0.62 0.20 28);
+  --warn-g:   color-mix(in oklch, var(--warn) 12%, transparent);
+  --warn-b:   color-mix(in oklch, var(--warn) 30%, transparent);
+
+  --caries:   oklch(0.72 0.16 65);
+  --caries-g: color-mix(in oklch, var(--caries) 12%, transparent);
+  --caries-b: color-mix(in oklch, var(--caries) 30%, transparent);
+
+  --peri:     oklch(0.60 0.20 22);
+  --peri-g:   color-mix(in oklch, var(--peri) 12%, transparent);
+  --peri-b:   color-mix(in oklch, var(--peri) 30%, transparent);
+
+  --imp:      oklch(0.58 0.16 310);
+  --imp-g:    color-mix(in oklch, var(--imp) 12%, transparent);
+  --imp-b:    color-mix(in oklch, var(--imp) 30%, transparent);
+
+  /* Typography */
+  --ff-d: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --ff-b: 'Karla', system-ui, sans-serif;
+  --ff-m: ui-monospace, 'SFMono-Regular', 'Consolas', monospace;
+
+  /* 4pt spacing scale */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --sp-7: 48px; --sp-8: 64px;
+
+  --radius: 3px;
+  --radius-l: 5px;
+  --trans: 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+  --trans-f: 0.10s ease-out;
+}
+
+/* ================================================================
+   Reset
+   ================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; font-size: 14px; }
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--ff-b);
+  font-weight: 400;
+  font-feature-settings: "ss01", "kern", "liga";
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  letter-spacing: 0.002em;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+img { display: block; max-width: 100%; }
+button { cursor: pointer; font-family: inherit; color: inherit; background: none; border: none; }
+button:focus-visible, [tabindex]:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+}
+* { scrollbar-width: thin; scrollbar-color: var(--bord) transparent; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bord); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bord-h); }
+
+/* Utility: all-caps labels in display font */
+.eyebrow {
+  font-family: var(--ff-d);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* ================================================================
+   App shell — grid rows: header / tabs / workspace
+   ================================================================ */
+.app {
+  display: grid;
+  grid-template-rows: 64px 44px 1fr;
+  height: 100vh;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-5);
+  border-bottom: 1px solid var(--bord);
+  background: var(--s1);
+}
+.hdr-brand { display: flex; align-items: center; gap: var(--sp-4); min-width: 0; }
+.hdr-mark {
+  font-family: var(--ff-d);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  line-height: 1;
+  white-space: nowrap;
+}
+.hdr-mark em { color: var(--amber); font-style: normal; }
+.hdr-rule {
+  width: 1px; height: 22px;
+  background: var(--bord);
+}
+.hdr-tagline {
+  font-family: var(--ff-d);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute-d);
+  white-space: nowrap;
+}
+.hdr-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 11px;
+  color: var(--mute-d);
+  font-variant-numeric: tabular-nums;
+}
+.hdr-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 3px var(--amber-g);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────── */
+.tabs {
+  display: flex;
+  align-items: stretch;
+  background: var(--s1);
+  border-bottom: 1px solid var(--bord);
+  padding-left: var(--sp-5);
+  gap: var(--sp-1);
+}
+.tab {
+  position: relative;
+  padding: 0 var(--sp-5);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-family: var(--ff-d);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute-d);
+  transition: color var(--trans);
+}
+.tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: var(--sp-5); right: var(--sp-5);
+  height: 2px;
+  background: transparent;
+  transition: background var(--trans);
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); }
+.tab.active::after { background: var(--amber); }
+.tab-i {
+  font-family: var(--ff-d);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--faint);
+  padding: 2px 7px;
+  border: 1px solid var(--bord);
+  border-radius: 2px;
+  transition: border-color var(--trans), color var(--trans);
+}
+.tab.active .tab-i {
+  color: var(--amber);
+  border-color: var(--amber-b);
+}
+
+/* ── Workspace ───────────────────────────────────────────────── */
+.ws {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.p-left {
+  border-right: 1px solid var(--bord);
+  background: var(--s1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  overflow-y: auto;
+}
+
+.p-right {
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  min-height: 0;
+}
+
+/* Tab panels — only one visible at a time */
+.tab-panel { display: none; flex-direction: column; gap: var(--sp-4); }
+.tab-panel.active { display: flex; }
+
+.right-panel { display: none; flex-direction: column; gap: var(--sp-5); flex: 1; min-height: 0; }
+.right-panel.active { display: flex; animation: fadein 0.32s cubic-bezier(0.22,1,0.36,1); }
+@keyframes fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ================================================================
+   Upload dropzone
+   ================================================================ */
+.dz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 156px;
+  border: 1.5px dashed var(--bord);
+  border-radius: var(--radius-l);
+  background: color-mix(in oklch, var(--bg) 85%, var(--amber-g));
+  cursor: pointer;
+  transition: border-color var(--trans), background var(--trans);
+  padding: var(--sp-5);
+  text-align: center;
+  position: relative;
+}
+.dz:hover, .dz.over {
+  border-color: var(--amber-b);
+  background: var(--amber-g);
+}
+.dz input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.dz-glyph {
+  font-family: var(--ff-d);
+  font-size: 34px;
+  font-weight: 300;
+  color: var(--faint);
+  line-height: 1;
+  margin-bottom: var(--sp-1);
+}
+.dz:hover .dz-glyph, .dz.over .dz-glyph { color: var(--amber); }
+.dz-title {
+  font-family: var(--ff-d);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+.dz-hint { font-size: 11px; color: var(--faint); }
+
+/* Preview thumbnail */
+.prev {
+  display: none;
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--bord);
+  background: #000;
+}
+.prev.show { display: block; }
+.prev img { width: 100%; height: 120px; object-fit: cover; }
+.prev-meta {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: linear-gradient(to top,
+    color-mix(in oklch, var(--bg) 92%, transparent),
+    transparent);
+  font-size: 11px;
+  color: var(--mute);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.prev-clear {
+  width: 24px; height: 24px;
+  position: absolute;
+  top: var(--sp-2); right: var(--sp-2);
+  background: color-mix(in oklch, var(--bg) 80%, transparent);
+  border: 1px solid var(--bord);
+  color: var(--mute);
+  border-radius: 2px;
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color var(--trans), border-color var(--trans);
+}
+.prev-clear:hover { color: var(--text); border-color: var(--amber); }
+
+/* Run button */
+.run {
+  width: 100%;
+  padding: 14px var(--sp-4);
+  background: var(--amber);
+  color: oklch(0.12 0.01 75);
+  font-family: var(--ff-d);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+  transition: background var(--trans-f), transform var(--trans-f);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+}
+.run:hover:not(:disabled) { background: var(--amber-h); }
+.run:active:not(:disabled) { transform: translateY(1px); }
+.run:disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  background: var(--s3);
+  color: var(--mute-d);
+}
+.run.loading { background: var(--amber-d); cursor: wait; }
+.run-arrow {
+  font-family: var(--ff-m);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+/* Pipeline card */
+.pipe {
+  background: var(--s2);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  padding: var(--sp-4);
+  flex: 1;
+}
+.pipe-hd { margin-bottom: var(--sp-3); }
+.pipe-step {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: var(--sp-3);
+  align-items: start;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--bord-s);
+}
+.pipe-step:last-child { border-bottom: none; padding-bottom: var(--sp-1); }
+.pipe-step:first-child { padding-top: var(--sp-1); }
+.pipe-n {
+  font-family: var(--ff-d);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--amber);
+  background: var(--amber-g);
+  padding: 3px 0;
+  border-radius: 2px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+.pipe-body { font-size: 12px; color: var(--mute-d); line-height: 1.55; }
+.pipe-body b {
+  display: block;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12.5px;
+  margin-bottom: 1px;
+  letter-spacing: 0.005em;
+}
+
+/* ================================================================
+   Empty + loading states
+   ================================================================ */
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 1px dashed var(--bord);
+  border-radius: var(--radius-l);
+  background: var(--s1);
+  padding: var(--sp-7) var(--sp-6);
+  min-height: 440px;
+}
+.state-glyph {
+  font-family: var(--ff-d);
+  font-size: 44px;
+  font-weight: 300;
+  color: var(--faint);
+  line-height: 1;
+  margin-bottom: var(--sp-5);
+}
+.state-title {
+  font-family: var(--ff-d);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: var(--sp-2);
+}
+.state-body {
+  font-size: 12.5px;
+  color: var(--faint);
+  line-height: 1.7;
+  max-width: 380px;
+  margin-bottom: var(--sp-6);
+}
+.state-body strong { color: var(--amber); font-weight: 600; }
+
+.state-flow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.flow-chip {
+  font-family: var(--ff-d);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--amber);
+  background: var(--amber-g);
+  border: 1px solid var(--amber-b);
+  padding: 5px 10px;
+  border-radius: 2px;
+}
+.flow-arr { color: var(--faint); font-size: 11px; font-family: var(--ff-m); }
+
+/* Loading */
+.loading {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-5);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  background: var(--s1);
+  min-height: 440px;
+}
+.loading.on { display: flex; }
+.load-dots { display: flex; gap: 6px; align-items: center; }
+.load-dots span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  animation: pulse 1.3s ease-in-out infinite;
+}
+.load-dots span:nth-child(2) { animation-delay: 0.18s; }
+.load-dots span:nth-child(3) { animation-delay: 0.36s; }
+@keyframes pulse {
+  0%, 80%, 100% { opacity: 0.18; transform: scale(0.75); }
+  40% { opacity: 1; transform: scale(1); }
+}
+.load-label {
+  font-family: var(--ff-d);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--mute-d);
+}
+
+/* ================================================================
+   Section headings (in results)
+   ================================================================ */
+.sec {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+.sec-rule { flex: 1; height: 1px; background: var(--bord-s); }
+
+/* ================================================================
+   Annotated radiograph
+   ================================================================ */
+.xray {
+  background: oklch(0.08 0 0);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+  line-height: 0;
+}
+.xray img {
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+  background: oklch(0.06 0 0);
+}
+
+/* Ceph variant: portrait-safe */
+.xray.ceph img {
+  max-height: 520px;
+}
+
+/* ================================================================
+   Analysis grid (findings + gradcam)
+   ================================================================ */
+.a-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  align-items: start;
+}
+
+/* Findings panel */
+.f-panel {
+  background: var(--s1);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  padding: var(--sp-5) var(--sp-5);
+}
+.banner.warn { background: var(--warn-g); border-bottom: 1px solid var(--warn-b); }
+.banner.ok   { background: var(--ok-g);   border-bottom: 1px solid var(--ok-b); }
+.banner-n {
+  font-family: var(--ff-d);
+  font-size: 68px;
+  font-weight: 700;
+  line-height: 0.85;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.banner.warn .banner-n { color: var(--warn); }
+.banner.ok   .banner-n { color: var(--ok); }
+.banner-meta { min-width: 0; }
+.banner-hd {
+  font-family: var(--ff-d);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  margin-bottom: 2px;
+  text-transform: none;
+}
+.banner-sub { font-size: 12px; color: var(--mute); line-height: 1.5; }
+
+.legend {
+  display: flex;
+  gap: var(--sp-5);
+  padding: var(--sp-3) var(--sp-5);
+  background: var(--s2);
+  border-bottom: 1px solid var(--bord-s);
+  flex-wrap: wrap;
+}
+.leg { display: flex; align-items: center; gap: var(--sp-2); font-size: 11px; color: var(--mute); }
+.leg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+table.ftable { width: 100%; border-collapse: collapse; }
+table.ftable thead { background: var(--s2); }
+table.ftable th {
+  font-family: var(--ff-d);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--faint);
+  padding: var(--sp-3) var(--sp-5);
+  text-align: left;
+  border-bottom: 1px solid var(--bord);
+}
+table.ftable th.r { text-align: right; }
+table.ftable td {
+  padding: var(--sp-3) var(--sp-5);
+  border-bottom: 1px solid var(--bord-s);
+  vertical-align: middle;
+  font-size: 13px;
+}
+table.ftable tr:last-child td { border-bottom: none; }
+table.ftable tr:nth-child(even) td { background: color-mix(in oklch, var(--s2) 50%, transparent); }
+.td-fdi {
+  font-family: var(--ff-d);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--amber);
+  letter-spacing: 0.02em;
+  width: 72px;
+}
+.td-conf {
+  text-align: right;
+  font-family: var(--ff-m);
+  font-size: 12px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+.pill {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  letter-spacing: 0.01em;
+  font-weight: 500;
+}
+
+/* ================================================================
+   GradCAM panel
+   ================================================================ */
+.gc {
+  background: var(--s1);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+.gc-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--s2);
+  border-bottom: 1px solid var(--bord);
+}
+.gc-sub { font-size: 10.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.gc-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--bord-s);
+}
+.gc-empty {
+  padding: var(--sp-6) var(--sp-5);
+  text-align: center;
+  font-size: 12px;
+  color: var(--faint);
+}
+.cam {
+  background: var(--bg);
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  animation: fadein 0.45s cubic-bezier(0.22,1,0.36,1) both;
+}
+.cam img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s cubic-bezier(0.22,1,0.36,1);
+}
+.cam:hover img { transform: scale(1.06); }
+.cam-lbl {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top,
+    color-mix(in oklch, var(--bg) 94%, transparent),
+    transparent);
+  padding: 18px 8px 7px;
+  font-family: var(--ff-d);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.4;
+}
+.cam-lbl small {
+  display: block;
+  color: var(--mute-d);
+  font-size: 9.5px;
+  font-weight: 400;
+  margin-top: 1px;
+}
+
+/* ================================================================
+   CEPHALOMETRIC: CVM card + landmark table
+   ================================================================ */
+.cvm {
+  background: var(--s1);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+.cvm-hd {
+  padding: var(--sp-4) var(--sp-5);
+  border-bottom: 1px solid var(--bord);
+  background: var(--s2);
+}
+.cvm-title {
+  font-family: var(--ff-d);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+.cvm-body { padding: var(--sp-5); }
+.cvm-stages {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-5);
+}
+.stage {
+  padding: var(--sp-4) var(--sp-3);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius);
+  text-align: center;
+  background: var(--bg);
+  transition: border-color var(--trans), background var(--trans);
+}
+.stage-lbl {
+  font-family: var(--ff-d);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin-bottom: var(--sp-2);
+}
+.stage-prob {
+  font-family: var(--ff-d);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--mute-d);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stage.active {
+  border-color: var(--amber-b);
+  background: var(--amber-g);
+}
+.stage.active .stage-lbl { color: var(--amber); }
+.stage.active .stage-prob { color: var(--amber); }
+.cvm-interp {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--mute);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--bord-s);
+}
+.cvm-interp b { color: var(--text); font-weight: 600; }
+
+/* Landmark table */
+.lm {
+  background: var(--s1);
+  border: 1px solid var(--bord);
+  border-radius: var(--radius-l);
+  overflow: hidden;
+}
+.lm-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--s2);
+  border-bottom: 1px solid var(--bord);
+}
+.lm-title {
+  font-family: var(--ff-d);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.lm-count {
+  font-size: 10.5px;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.lm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.lm-col { display: flex; flex-direction: column; }
+.lm-col + .lm-col { border-left: 1px solid var(--bord-s); }
+.lm-row {
+  display: grid;
+  grid-template-columns: 44px 1fr 52px 52px;
+  gap: var(--sp-2);
+  padding: 7px var(--sp-4);
+  align-items: baseline;
+  font-size: 12px;
+  border-bottom: 1px solid var(--bord-s);
+}
+.lm-row:last-child { border-bottom: none; }
+.lm-sym {
+  font-family: var(--ff-d);
+  font-weight: 600;
+  color: var(--amber);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+}
+.lm-name {
+  color: var(--mute);
+  font-size: 11.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lm-coord {
+  font-family: var(--ff-m);
+  font-size: 11px;
+  color: var(--mute-d);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Error bar */
+.err {
+  display: none;
+  background: var(--peri-g);
+  border: 1px solid var(--peri-b);
+  border-radius: var(--radius);
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 13px;
+  color: oklch(0.78 0.14 22);
+}
+.err.on { display: block; }
+
+/* ================================================================
+   Responsive
+   ================================================================ */
+@media (max-width: 1100px) {
+  .a-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .ws { grid-template-columns: 1fr; }
+  .p-left { border-right: none; border-bottom: 1px solid var(--bord); max-height: 280px; }
+  body { overflow: auto; }
+  .app { height: auto; grid-template-rows: 64px 44px auto; }
+  .lm-grid { grid-template-columns: 1fr; }
+  .lm-col + .lm-col { border-left: none; border-top: 1px solid var(--bord-s); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══════════════════════ Header ═══════════════════════ -->
+  <header class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-mark">Ortho<em>AI</em></div>
+      <div class="hdr-rule"></div>
+      <div class="hdr-tagline">Dental Radiograph Intelligence</div>
+    </div>
+    <div class="hdr-status">
+      <span class="hdr-dot"></span>
+      <span id="statusText">Ready</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════ Tabs ═══════════════════════ -->
+  <nav class="tabs">
+    <button class="tab active" data-tab="pano">
+      <span class="tab-i">01</span>
+      <span>Panoramic</span>
+    </button>
+    <button class="tab" data-tab="ceph">
+      <span class="tab-i">02</span>
+      <span>Cephalometric</span>
+    </button>
+  </nav>
+
+  <!-- ═══════════════════════ Workspace ═══════════════════════ -->
+  <div class="ws">
+
+    <!-- ─── Left panel ─── -->
+    <aside class="p-left">
+
+      <!-- PANORAMIC tab left -->
+      <div class="tab-panel active" data-panel="pano">
+        <label class="dz" id="dzPano">
+          <div class="dz-glyph">◈</div>
+          <div class="dz-title">Panoramic X-ray</div>
+          <div class="dz-hint">Drag &amp; drop or click to browse</div>
+          <input type="file" id="fPano" accept="image/*">
+        </label>
+
+        <div class="prev" id="prevPano">
+          <img id="prevImgPano" alt="">
+          <div class="prev-meta">
+            <span id="prevNamePano">—</span>
+          </div>
+          <button class="prev-clear" onclick="clearFile('pano')" title="Remove">✕</button>
+        </div>
+
+        <button class="run" id="runPano" onclick="runAnalysis('pano')" disabled>
+          <span class="run-arrow">►</span>
+          <span>Analyse Panoramic</span>
+        </button>
+
+        <div class="pipe">
+          <div class="eyebrow pipe-hd">Pipeline</div>
+          <div class="pipe-step">
+            <span class="pipe-n">01</span>
+            <div class="pipe-body">
+              <b>Contrast enhancement</b>
+              Adaptive histogram equalisation for bone &amp; enamel detail
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">02</span>
+            <div class="pipe-body">
+              <b>Instance segmentation</b>
+              Per-tooth masks with FDI class labels (11–48)
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">03</span>
+            <div class="pipe-body">
+              <b>Disease classification</b>
+              Caries, periapical lesions &amp; impaction on each tooth
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">04</span>
+            <div class="pipe-body">
+              <b>Explanation overlay</b>
+              Gradient-based activation maps for each finding
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CEPHALOMETRIC tab left -->
+      <div class="tab-panel" data-panel="ceph">
+        <label class="dz" id="dzCeph">
+          <div class="dz-glyph">◆</div>
+          <div class="dz-title">Lateral Cephalogram</div>
+          <div class="dz-hint">Drag &amp; drop or click to browse</div>
+          <input type="file" id="fCeph" accept="image/*">
+        </label>
+
+        <div class="prev" id="prevCeph">
+          <img id="prevImgCeph" alt="">
+          <div class="prev-meta">
+            <span id="prevNameCeph">—</span>
+          </div>
+          <button class="prev-clear" onclick="clearFile('ceph')" title="Remove">✕</button>
+        </div>
+
+        <button class="run" id="runCeph" onclick="runAnalysis('ceph')" disabled>
+          <span class="run-arrow">►</span>
+          <span>Analyse Cephalogram</span>
+        </button>
+
+        <div class="pipe">
+          <div class="eyebrow pipe-hd">Pipeline</div>
+          <div class="pipe-step">
+            <span class="pipe-n">01</span>
+            <div class="pipe-body">
+              <b>Letterbox &amp; enhance</b>
+              Aspect-preserving pad to 512², CLAHE contrast
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">02</span>
+            <div class="pipe-body">
+              <b>Landmark detection</b>
+              29 cephalometric points via U-Net heatmap regression
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">03</span>
+            <div class="pipe-body">
+              <b>CVM staging</b>
+              Cervical vertebral maturation classifier
+            </div>
+          </div>
+          <div class="pipe-step">
+            <span class="pipe-n">04</span>
+            <div class="pipe-body">
+              <b>Clinical interpretation</b>
+              Growth-phase assessment for treatment planning
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ─── Right panel ─── -->
+    <main class="p-right">
+
+      <div class="err" id="errBar"></div>
+
+      <!-- ═══ PANORAMIC right ═══ -->
+      <div class="right-panel active" data-panel="pano">
+
+        <!-- Empty -->
+        <div class="state" id="emptyPano">
+          <div class="state-glyph">◈</div>
+          <div class="state-title">Awaiting Radiograph</div>
+          <p class="state-body">
+            Upload a panoramic X-ray on the left and press
+            <strong>Analyse Panoramic</strong>. Detected teeth, disease findings
+            and saliency overlays will appear in this workspace.
+          </p>
+          <div class="state-flow">
+            <span class="flow-chip">Enhance</span>
+            <span class="flow-arr">→</span>
+            <span class="flow-chip">Detect</span>
+            <span class="flow-arr">→</span>
+            <span class="flow-chip">Classify</span>
+            <span class="flow-arr">→</span>
+            <span class="flow-chip">Explain</span>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loadPano">
+          <div class="load-dots"><span></span><span></span><span></span></div>
+          <div class="load-label">Analysing panoramic radiograph</div>
+        </div>
+
+        <!-- Results -->
+        <div class="right-panel" id="resPano">
+          <div>
+            <div class="sec">
+              <div class="eyebrow">Annotated Radiograph</div>
+              <div class="sec-rule"></div>
+            </div>
+            <div class="xray">
+              <img id="panoImg" alt="Annotated X-ray">
+            </div>
+          </div>
+
+          <div class="a-grid">
+            <div>
+              <div class="sec">
+                <div class="eyebrow">Findings</div>
+                <div class="sec-rule"></div>
+              </div>
+              <div class="f-panel">
+                <div class="banner" id="banner">
+                  <span class="banner-n" id="bannerN">—</span>
+                  <div class="banner-meta">
+                    <div class="banner-hd" id="bannerH">—</div>
+                    <div class="banner-sub" id="bannerS"></div>
+                  </div>
+                </div>
+                <div class="legend">
+                  <span class="leg"><span class="leg-dot" style="background:var(--ok)"></span>Healthy</span>
+                  <span class="leg"><span class="leg-dot" style="background:var(--caries)"></span>Caries</span>
+                  <span class="leg"><span class="leg-dot" style="background:var(--peri)"></span>Periapical</span>
+                  <span class="leg"><span class="leg-dot" style="background:var(--imp)"></span>Impacted</span>
+                </div>
+                <table class="ftable">
+                  <thead>
+                    <tr>
+                      <th>FDI</th>
+                      <th>Diagnosis</th>
+                      <th class="r">Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody id="fTbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec">
+                <div class="eyebrow">Activation Maps</div>
+                <div class="sec-rule"></div>
+              </div>
+              <div class="gc">
+                <div class="gc-hd">
+                  <span class="eyebrow" style="font-size:9.5px">Saliency · Diseased teeth</span>
+                  <span class="gc-sub" id="camCount"></span>
+                </div>
+                <div id="gcGrid" class="gc-grid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ CEPHALOMETRIC right ═══ -->
+      <div class="right-panel" data-panel="ceph">
+
+        <!-- Empty -->
+        <div class="state" id="emptyCeph">
+          <div class="state-glyph">◆</div>
+          <div class="state-title">Awaiting Cephalogram</div>
+          <p class="state-body">
+            Upload a lateral cephalogram on the left and press
+            <strong>Analyse Cephalogram</strong>. Skeletal landmarks and
+            cervical vertebral maturation staging will appear here.
+          </p>
+          <div class="state-flow">
+            <span class="flow-chip">Letterbox</span>
+            <span class="flow-arr">→</span>
+            <span class="flow-chip">Landmarks</span>
+            <span class="flow-arr">→</span>
+            <span class="flow-chip">CVM stage</span>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading" id="loadCeph">
+          <div class="load-dots"><span></span><span></span><span></span></div>
+          <div class="load-label">Analysing cephalogram</div>
+        </div>
+
+        <!-- Results -->
+        <div class="right-panel" id="resCeph">
+          <div>
+            <div class="sec">
+              <div class="eyebrow">Annotated Cephalogram</div>
+              <div class="sec-rule"></div>
+            </div>
+            <div class="xray ceph">
+              <img id="cephImg" alt="Annotated cephalogram">
+            </div>
+          </div>
+
+          <div class="a-grid">
+            <div>
+              <div class="sec">
+                <div class="eyebrow">Cervical Vertebral Maturation</div>
+                <div class="sec-rule"></div>
+              </div>
+              <div class="cvm">
+                <div class="cvm-hd">
+                  <div class="cvm-title" id="cvmTitle">—</div>
+                </div>
+                <div class="cvm-body">
+                  <div class="cvm-stages" id="cvmStages"></div>
+                  <div class="cvm-interp" id="cvmInterp"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="sec">
+                <div class="eyebrow">Landmark Coordinates</div>
+                <div class="sec-rule"></div>
+              </div>
+              <div class="lm">
+                <div class="lm-hd">
+                  <span class="lm-title">29 Points · 512 px space</span>
+                  <span class="lm-count" id="lmCount">—</span>
+                </div>
+                <div class="lm-grid" id="lmGrid"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   State
+   ================================================================ */
+const state = {
+  pano: { file: null, done: false },
+  ceph: { file: null, done: false },
+};
+
+let currentTab = 'pano';
+
+const DISEASE_STYLE = {
+  'Healthy':           { fg: 'var(--ok)',     bg: 'var(--ok-g)',     bd: 'var(--ok-b)'     },
+  'Caries+DeepCaries': { fg: 'var(--caries)', bg: 'var(--caries-g)', bd: 'var(--caries-b)' },
+  'Periapical':        { fg: 'var(--peri)',   bg: 'var(--peri-g)',   bd: 'var(--peri-b)'   },
+  'Impacted':          { fg: 'var(--imp)',    bg: 'var(--imp-g)',    bd: 'var(--imp-b)'    },
+};
+
+const DISEASE_LABEL = {
+  'Healthy':           'Healthy',
+  'Caries+DeepCaries': 'Caries',
+  'Periapical':        'Periapical',
+  'Impacted':          'Impacted',
+};
+
+/* ================================================================
+   Tab switching
+   ================================================================ */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.panel === name);
+  });
+  document.querySelectorAll('.p-right > .right-panel').forEach(p => {
+    p.classList.toggle('active', p.dataset.panel === name);
+  });
+  refreshStates();
+}
+
+/* ================================================================
+   Upload + dropzone
+   ================================================================ */
+function setupUpload(kind) {
+  const dz = document.getElementById('dz' + cap(kind));
+  const input = document.getElementById('f' + cap(kind));
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) handleFile(kind, input.files[0]);
+  });
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.classList.add('over');
+  });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('over');
+    if (e.dataTransfer.files[0]) handleFile(kind, e.dataTransfer.files[0]);
+  });
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+function handleFile(kind, file) {
+  state[kind].file = file;
+  state[kind].done = false;
+  const reader = new FileReader();
+  reader.onload = e => {
+    document.getElementById('prevImg' + cap(kind)).src = e.target.result;
+    document.getElementById('prev' + cap(kind)).classList.add('show');
+    document.getElementById('prevName' + cap(kind)).textContent =
+      file.name.length > 28 ? file.name.slice(0, 25) + '…' : file.name;
+  };
+  reader.readAsDataURL(file);
+  document.getElementById('run' + cap(kind)).disabled = false;
+  refreshStates();
+}
+
+function clearFile(kind) {
+  state[kind].file = null;
+  state[kind].done = false;
+  document.getElementById('f' + cap(kind)).value = '';
+  document.getElementById('prev' + cap(kind)).classList.remove('show');
+  document.getElementById('prevImg' + cap(kind)).src = '';
+  document.getElementById('run' + cap(kind)).disabled = true;
+  refreshStates();
+}
+
+setupUpload('pano');
+setupUpload('ceph');
+
+/* ================================================================
+   View state (empty / loading / results) per tab
+   ================================================================ */
+function refreshStates() {
+  ['pano', 'ceph'].forEach(kind => {
+    const hasFile = !!state[kind].file;
+    const isDone = state[kind].done;
+    const isLoading = state[kind].loading;
+
+    const empty = document.getElementById('empty' + cap(kind));
+    const load = document.getElementById('load' + cap(kind));
+    const res = document.getElementById('res' + cap(kind));
+
+    empty.style.display = (!isLoading && !isDone) ? 'flex' : 'none';
+    load.classList.toggle('on', !!isLoading);
+    res.classList.toggle('active', !!isDone && !isLoading);
+  });
+}
+
+function showError(msg) {
+  const bar = document.getElementById('errBar');
+  bar.textContent = '⚠ ' + msg;
+  bar.classList.add('on');
+  setTimeout(() => bar.classList.remove('on'), 5500);
+}
+
+/* ================================================================
+   Analysis dispatcher
+   ================================================================ */
+async function runAnalysis(kind) {
+  if (!state[kind].file) return;
+
+  const btn = document.getElementById('run' + cap(kind));
+  btn.disabled = true;
+  btn.classList.add('loading');
+  state[kind].loading = true;
+  state[kind].done = false;
+  refreshStates();
+  document.getElementById('statusText').textContent = 'Analysing…';
+
+  const form = new FormData();
+  form.append('image', state[kind].file);
+  const endpoint = kind === 'pano' ? '/analyze' : '/analyze_ceph';
+
+  let data;
+  try {
+    const resp = await fetch(endpoint, { method: 'POST', body: form });
+    data = await resp.json();
+    if (!resp.ok || data.error) throw new Error(data.error || 'Server error');
+  } catch (err) {
+    showError(err.message || 'Network error. Is the server running?');
+    state[kind].loading = false;
+    refreshStates();
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    document.getElementById('statusText').textContent = 'Ready';
+    return;
+  }
+
+  if (kind === 'pano') renderPano(data);
+  else                 renderCeph(data);
+
+  state[kind].loading = false;
+  state[kind].done = true;
+  refreshStates();
+  btn.disabled = false;
+  btn.classList.remove('loading');
+  document.getElementById('statusText').textContent = 'Ready';
+}
+
+/* ================================================================
+   Renderer — panoramic
+   ================================================================ */
+function renderPano(data) {
+  document.getElementById('panoImg').src = data.annotated;
+
+  const results = data.results || [];
+  const findings = results.filter(r => r.disease !== 'Healthy');
+  const n = findings.length;
+  const total = results.length;
+
+  const banner = document.getElementById('banner');
+  const bannerN = document.getElementById('bannerN');
+  const bannerH = document.getElementById('bannerH');
+  const bannerS = document.getElementById('bannerS');
+
+  banner.className = 'banner ' + (n > 0 ? 'warn' : 'ok');
+  bannerN.textContent = n > 0 ? n : '✓';
+  bannerH.textContent = n > 0
+    ? (n + ' finding' + (n > 1 ? 's' : '') + ' detected')
+    : 'No pathology detected';
+  bannerS.textContent = n > 0
+    ? ('Out of ' + total + ' teeth examined')
+    : ('All ' + total + ' teeth appear healthy');
+
+  const tbody = document.getElementById('fTbody');
+  tbody.innerHTML = '';
+  const sorted = [...findings, ...results.filter(r => r.disease === 'Healthy')];
+  for (const r of sorted) {
+    const s = DISEASE_STYLE[r.disease] || DISEASE_STYLE['Healthy'];
+    const label = DISEASE_LABEL[r.disease] || r.disease;
+    const pill = `<span class="pill" style="color:${s.fg};background:${s.bg};border:1px solid ${s.bd}">${label}</span>`;
+    const conf = r.disease !== 'Healthy' ? (r.confidence * 100).toFixed(1) + '%' : '—';
+    tbody.innerHTML += `
+      <tr>
+        <td class="td-fdi">${r.fdi}</td>
+        <td>${pill}</td>
+        <td class="td-conf">${conf}</td>
+      </tr>`;
+  }
+
+  // GradCAM
+  const grid = document.getElementById('gcGrid');
+  const camCount = document.getElementById('camCount');
+  const cams = results.filter(r => r.gradcam_b64);
+
+  grid.innerHTML = '';
+  if (cams.length === 0) {
+    grid.innerHTML = '<div class="gc-empty">No diseased teeth detected</div>';
+    camCount.textContent = '';
+  } else {
+    camCount.textContent = cams.length + ' map' + (cams.length > 1 ? 's' : '');
+    cams.forEach((r, i) => {
+      const s = DISEASE_STYLE[r.disease] || {};
+      const card = document.createElement('div');
+      card.className = 'cam';
+      card.style.animationDelay = (i * 70) + 'ms';
+      card.innerHTML = `
+        <img src="${r.gradcam_b64}" alt="FDI ${r.fdi}" loading="lazy">
+        <div class="cam-lbl">
+          FDI <span style="color:${s.fg || 'var(--amber)'}">${r.fdi}</span>
+          <small>${DISEASE_LABEL[r.disease] || r.disease} · ${(r.confidence * 100).toFixed(0)}%</small>
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+}
+
+/* ================================================================
+   Renderer — cephalometric
+   ================================================================ */
+function renderCeph(data) {
+  document.getElementById('cephImg').src = data.landmark_image;
+
+  // CVM stages
+  const stageIdx = data.cvm_stage;
+  const probs = data.cvm_probs || [0, 0, 0];
+  const names = ['Early', 'Peak', 'Late'];
+
+  const stagesEl = document.getElementById('cvmStages');
+  stagesEl.innerHTML = names.map((nm, i) => `
+    <div class="stage ${i === stageIdx ? 'active' : ''}">
+      <div class="stage-lbl">${nm}</div>
+      <div class="stage-prob">${(probs[i] * 100).toFixed(0)}<span style="font-size:14px">%</span></div>
+    </div>`).join('');
+
+  document.getElementById('cvmTitle').textContent =
+    stageIdx !== null
+      ? ('Stage · ' + names[stageIdx])
+      : 'Stage unavailable';
+
+  document.getElementById('cvmInterp').innerHTML = data.cvm_interpretation
+    ? ('<b>Clinical implication.</b> ' + data.cvm_interpretation)
+    : 'CVM model not loaded.';
+
+  // Landmark table
+  const lms = data.landmarks || [];
+  document.getElementById('lmCount').textContent = lms.length + ' detected';
+
+  const grid = document.getElementById('lmGrid');
+  const half = Math.ceil(lms.length / 2);
+  const col1 = lms.slice(0, half);
+  const col2 = lms.slice(half);
+
+  function renderCol(rows) {
+    return rows.map(l => `
+      <div class="lm-row">
+        <span class="lm-sym">${l.symbol}</span>
+        <span class="lm-name" title="${l.name}">${l.name}</span>
+        <span class="lm-coord">${l.x.toFixed(0)}</span>
+        <span class="lm-coord">${l.y.toFixed(0)}</span>
+      </div>`).join('');
+  }
+
+  grid.innerHTML = `
+    <div class="lm-col">${renderCol(col1)}</div>
+    <div class="lm-col">${renderCol(col2)}</div>`;
+}
+
+/* Initial state */
+refreshStates();
+</script>
+</body>
+</html>
