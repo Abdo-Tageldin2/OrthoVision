@@ -6,7 +6,7 @@
 OrthoVision performs six diagnostic tasks from a single dental X-ray: tooth segmentation, per-tooth FDI labelling across 32 classes, disease classification, malocclusion screening, cephalometric landmark regression, and cervical vertebral maturation staging. It is trained entirely on public datasets, runs on a single consumer GPU, and ships with a FastAPI demo application for end-to-end analysis.
 
 <p align="center">
-  <img src="docs/images/pipeline_overview.png" alt="OrthoVision pipeline overview" width="100%">
+  <img src="docs/images/pipeline2.png" alt="OrthoVision pipeline overview" width="100%">
 </p>
 
 ---
