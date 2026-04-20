@@ -64,7 +64,6 @@ All training data is from public sources. No proprietary or hospital data is use
 | DENTEX 2023 | 634 panoramic | [Zenodo](https://zenodo.org/records/7812323) |
 | HITL (Humans-in-the-Loop) | 598 panoramic | [Kaggle](https://www.kaggle.com/datasets/humansintheloop/teeth-segmentation-on-dental-x-ray-images) |
 | AKUDENTAL | 333 panoramic | [GitHub](https://github.com/MuhammadSohaib7/AKUDENTAL) |
-| Dataset1 | 2,392 panoramic | Roboflow public |
 | Aariz | 1,000 cephalometric | [GitHub](https://github.com/ahadch27/AARIZ-A-Benchmark-Dataset-for-Automatic-Cephalometric-Landmark-Detection-and-CVM-Stage-Classification) |
 
 One thing worth flagging: DENTEX and the Supervisely-format datasets (HITL, Dataset1) use different quadrant orderings. DENTEX numbers centripetally, HITL numbers clockwise. Aggregating without correcting for this inverts the upper-right and lower-left quadrants silently. If you're reusing the dataset-loading code, the remapping is in `notebooks/orthovision_pipeline.ipynb`.
@@ -134,36 +133,6 @@ If you only want to reproduce a specific phase, jump to its cell block and run f
 
 ---
 
-## Project structure
-
-```
-orthovision/
-├── app.py                        # FastAPI demo server
-├── static/
-│   └── index.html                # Demo frontend
-├── inference/
-│   ├── models.py                 # Model registry
-│   ├── panoramic.py              # Panoramic inference pipeline
-│   └── cephalometric.py          # Cephalometric inference
-├── utils/
-│   ├── device.py                 # Device selection
-│   └── visualization.py          # Overlay helpers
-├── notebooks/
-│   └── orthovision_pipeline.ipynb
-├── docs/
-│   ├── thesis.pdf                # Full thesis write-up
-│   ├── thesis.tex                # LaTeX source
-│   └── images/                   # Figures used in thesis and README
-├── examples/
-│   ├── panoramic/                # Sample panoramic X-rays
-│   └── cephalometric/            # Sample cephalograms
-├── requirements.txt
-├── LICENSE
-└── README.md                     # This file
-```
-
----
-
 ## What worked, what didn't
 
 Open about the negative results because they are useful for anyone extending this work.
@@ -187,8 +156,7 @@ See the thesis limitations section for the full post-mortem on each.
 ## Resources
 
 - **Full thesis (PDF):** [`docs/thesis.pdf`](docs/thesis.pdf)
-- **Pre-trained checkpoints and supplementary data (Google Drive):** https://drive.google.com/drive/folders/YOUR-FOLDER-ID
-- **Demo video:** *to be added*
+- **Pre-trained checkpoints and supplementary data (Google Drive):**https://drive.google.com/drive/folders/17SlG5Vu_gENBOJ3AWBHsh513DWiYiCXw?usp=sharing
 
 ---
 
@@ -230,14 +198,4 @@ Built on the open-source work of:
 - The DENTEX 2023 and Aariz benchmark teams for public datasets
 
 ---
-
-## Contact
-
-For questions about the project, methodology, or collaboration:
-
-- **Author:** Abdelrahman Tageldin
-- **Location:** Cairo, Egypt
-- **Email:** *your-email@domain.com*
-- **LinkedIn:** *your-linkedin-url*
-
 Issues and pull requests welcome.
